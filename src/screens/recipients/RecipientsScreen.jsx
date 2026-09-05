@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function RecipientsScreen({ onBack, onSelectRecipient }) {
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'add'
   const [searchQuery, setSearchQuery] = useState('');
+  const [recipients, setRecipients] = useState([]);
+  const [loading, setLoading] = useState(true);
   
   // Form state
   const [personType, setPersonType] = useState('natural');
@@ -12,28 +14,56 @@ export default function RecipientsScreen({ onBack, onSelectRecipient }) {
   const [selectedBank, setSelectedBank] = useState('Banco de Venezuela');
   const [accountType, setAccountType] = useState('Corriente');
 
-  const [recipients, setRecipients] = useState([
-    { id: 1, type: 'bank', name: 'Angela Josefina Santoyo Moya', bank: 'Banco de Venezuela', detail: 'Cuenta Corriente terminada en 5440' },
-    { id: 2, type: 'mobile', name: 'Leibys Gonzalez', bank: 'Pago móvil', detail: 'Celular terminado en 1787' }
-  ]);
+  // URL de tu backend desplegado en Render (Reemplaza con tu URL real de Render)
+  const API_URL = 'https://TU-BACKEND-EN-RENDER.onrender.com/api';
 
-  const banksList = [
-    'Banco de Venezuela', 'Banesco', 'Mercantil', 'BBVA Provincial', 
-    'Banco Nacional de Crédito (BNC)', 'Exterior', '100% Banco'
-  ];
+  useEffect(() => {
+    fetchRecipients();
+  }, []);
 
-  const handleAddRecipient = (e) => {
+  const fetchRecipients = async () => {
+    try {
+      const response = await fetch(`${API_URL}/recipients`);
+      const data = await response.json();
+      setRecipients(data);
+    } catch (error) {
+      console.error('Error al cargar destinatarios:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddRecipient = async (e) => {
     e.preventDefault();
-    const newRec = {
-      id: Date.now(),
-      type: 'bank',
+    const newRecipientData = {
       name: recipientName,
       bank: selectedBank,
-      detail: `Cuenta ${accountType} - ${docType}-${docNumber}`
+      detail: `Cuenta ${accountType} - ${docType}-${docNumber}`,
+      type: 'bank'
     };
-    setRecipients([...recipients, newRec]);
-    setViewMode('list');
+
+    try {
+      const response = await fetch(`${API_URL}/recipients`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRecipientData),
+      });
+
+      if (response.ok) {
+        fetchRecipients(); // Recargar la lista desde MongoDB
+        setViewMode('list');
+        setRecipientName('');
+        setDocNumber('');
+      }
+    } catch (error) {
+      console.error('Error al guardar destinatario:', error);
+    }
   };
+
+  const filteredRecipients = recipients.filter(r => 
+    r.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    r.bank.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (viewMode === 'add') {
     return (
@@ -71,12 +101,16 @@ export default function RecipientsScreen({ onBack, onSelectRecipient }) {
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase">Banco Destino</label>
             <select value={selectedBank} onChange={(e) => setSelectedBank(e.target.value)} className="w-full mt-1 p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm">
-              {banksList.map(b => <option key={b} value={b}>{b}</option>)}
+              <option value="Banco de Venezuela">Banco de Venezuela</option>
+              <option value="Banesco">Banesco</option>
+              <option value="Mercantil">Mercantil</option>
+              <option value="BBVA Provincial">BBVA Provincial</option>
+              <option value="BNC">Banco Nacional de Crédito (BNC)</option>
             </select>
           </div>
 
           <button type="submit" className="w-full bg-purple-700 text-white font-semibold py-3.5 rounded-2xl shadow-lg mt-6">
-            Guardar Destinatario
+            Guardar Destinatario en la Nube
           </button>
         </form>
       </div>
@@ -100,18 +134,26 @@ export default function RecipientsScreen({ onBack, onSelectRecipient }) {
         />
       </div>
 
-      <div className="space-y-3 mb-20">
-        {recipients.map((item) => (
-          <div key={item.id} onClick={() => onSelectRecipient(item)} className="p-4 bg-white border border-slate-100 shadow-sm rounded-2xl flex justify-between items-center cursor-pointer">
-            <div>
-              <p className="font-bold text-slate-800 text-sm">{item.name}</p>
-              <p className="text-xs text-slate-500">{item.bank}</p>
-              <p className="text-xs text-slate-400">{item.detail}</p>
-            </div>
-            <span className="text-purple-600 font-bold">→</span>
-          </div>
-        ))}
-      </div>
+      {loading ? (
+        <p className="text-center text-slate-400 py-10">Cargando destinatarios desde MongoDB...</p>
+      ) : (
+        <div className="space-y-3 mb-20">
+          {filteredRecipients.length === 0 ? (
+            <p className="text-center text-slate-400 py-6">No hay destinatarios guardados aún.</p>
+          ) : (
+            filteredRecipients.map((item) => (
+              <div key={item._id} onClick={() => onSelectRecipient(item)} className="p-4 bg-white border border-slate-100 shadow-sm rounded-2xl flex justify-between items-center cursor-pointer">
+                <div>
+                  <p className="font-bold text-slate-800 text-sm">{item.name}</p>
+                  <p className="text-xs text-slate-500">{item.bank}</p>
+                  <p className="text-xs text-slate-400">{item.detail}</p>
+                </div>
+                <span className="text-purple-600 font-bold">→</span>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       <div className="fixed bottom-20 left-0 right-0 px-5 max-w-md mx-auto">
         <button onClick={() => setViewMode('add')} className="w-full bg-purple-700 text-white font-semibold py-3.5 rounded-2xl shadow-lg">
