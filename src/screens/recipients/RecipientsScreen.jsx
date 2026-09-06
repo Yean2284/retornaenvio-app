@@ -15,8 +15,7 @@ export default function RecipientsScreen({ onBack, onSelectRecipient }) {
   const [accountType, setAccountType] = useState('Corriente');
 
   // URL de tu backend desplegado en Render (Reemplaza con tu URL real de Render)
-  const API_URL = 'https://retorna-backend-d3b2.onrender.com/api
-';
+  const API_URL = 'https://retorna-backend-d3b2.onrender.com/api';
 
   useEffect(() => {
     fetchRecipients();
@@ -164,4 +163,3 @@ export default function RecipientsScreen({ onBack, onSelectRecipient }) {
     </div>
   );
 }
-
