@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import HomeScreen from './src/screens/home/HomeScreen';
-import RecipientsScreen from './src/screens/recipients/RecipientsScreen';
+import HomeScreen from './screens/home/HomeScreen';
+import RecipientsScreen from './screens/recipients/RecipientsScreen';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState('home');
@@ -36,4 +36,3 @@ export default function App() {
     </div>
   );
 }
-
